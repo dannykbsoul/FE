@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+  <style>
+    .left,
+    .wrapper,
+    .right {
+      float: left;
+      height: 300px;
+    }
+
+    .left {
+      width: 300px;
+      margin-left: -100%;
+      background: red;
+    }
+
+    .wrapper {
+      width: 100%;
+      background: yellow;
+    }
+
+    .center {
+      margin: 0 300px;
+    }
+
+    .right {
+      width: 300px;
+      margin-left: -300px;
+      background: blue;
+    }
+
+    .footer {
+      clear: both;
+    }
+
+    #demo {
+      width: 0px;
+      height: 0px;
+      border-width: 100px;
+      border-style: solid;
+      border-color: red transparent transparent transparent;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- <div id="root">
+    <Child content='zhou'></Child>
+    <Child content='jun'></Child>
+  </div> -->
+  <!-- <script>
+    Vue.prototype.bus = new Vue();
+    Vue.component('child', {
+      props: {
+        content: String
+      },
+      data() {
+        return {
+          selfContent: this.content
+        }
+      },
+      template: '<div @click="handleClick">{{selfContent}}</div>',
+      methods: {
+        handleClick() {
+          console.log(this.content);
+          this.bus.$emit('change', this.selfContent);
+        }
+      },
+      mounted() {
+        console.log(this.$parent.$children)
+        this.bus.$on('change', (msg) => {
+          this.selfContent = msg;
+        })
+      }
+    })
+    let vm = new Vue({
+      el: '#root',
+      mounted() {
+        // console.log(this.$parent.$refs)
+      }
+    })
+  </script> -->
+  <!-- <header>头部</header>
+  <div class="wrapper">
+    <div class="center">主区域</div>
+  </div>
+  <div class="left">左区域</div>
+  <div class="right">右区域</div>
+  <footer class="footer">底部</footer> -->
+  <div id="demo"></div>
+</body>
+
+</html>

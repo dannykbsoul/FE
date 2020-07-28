@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+</head>
+
+<body>
+  <div id="root">
+    <counter count="0" @inc="handleIncrease"></counter>
+    <counter count="1"></counter>
+    <div>{{total}}</div>
+    <div ref='hello' @click="handleClick">hello world</div>
+  </div>
+  <script>
+    let counter = {
+      props: {
+        count: {
+          type: String, //约定传入参数的类型
+          // required: false, //是否是必传
+          // default: 'default value' //默认值
+          validator(value) {
+            //对传入的参数校验
+            return value.length > 0;
+          }
+        }
+      },
+      data: function () {
+        return {
+          number: this.count
+        }
+      },
+      template: '<div @click="handleClick">{{number}}</div>',
+      methods: {
+        handleClick() {
+          console.log(this.$parent.handleClick)
+          this.number++;
+          this.$emit('inc', 1);
+        }
+      }
+    }
+    let vm = new Vue({
+      el: '#root',
+      data: {
+        total: 5
+      },
+      components: {
+        counter
+      },
+      methods: {
+        handleIncrease(step) {
+          this.total += step;
+        },
+        handleClick() {
+          console.log(this.$refs.hello)
+        }
+      }
+    })
+  </script>
+</body>
+
+</html>
