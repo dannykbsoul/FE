@@ -71,12 +71,86 @@ function createStore(reducer) {
     }
   }
 
+  dispatch({
+    type: "_INIT_DEFAULT_STATE",
+  });
+
+  function getState() {
+    //我们需要保证返回的状态信息不能和容器中的state是同一个堆内存
+    //否则外面获取状态信息后，直接可以修改容器中的状态了。这不符合dispatch->reducer才能改状态的规范
+    //要深克隆
+    return JSON.parse(JSON.stringify(state));
+  }
+
+  //subscribe向事件池中追加方法
+  function subscribe(fn) {
+    let isExit = listenArr.includes(fn);
+    !isExit ? listenArr.push(fn) : null;
+    //返回一个方法：执行返回的方法会把当前绑定的方法在事件池中移除掉
+    return function unsubscribe() {
+      let index = listenArr.indexOf(fn);
+      // listenArr.splice(index, 1); //可能会引发数组塌陷
+      //比如你在index=2的位置将index=1的位置删除了，那么原来index=3的位置就前移到了index=2，从而无法执行
+      listenArr[index] = null;
+    };
+  }
+
   return {
     dispatch,
     getState,
     subscribe,
   };
 }
+
+/**
+ *
+ * @param {*} reducers
+ * 对象中包含了每一个版块对象的reducer=>{xxx:function reducer}
+ * @return
+ * 返回的是一个新的reducer函数(把这个值赋值给createStore)
+ *
+ * 特殊处理：合并reducer之后，redux容器中的state也变为对应对象管理的模式
+ */
+function combineReducers(reducers) {
+  /**
+   * state已经按照模块划分了，类似于{vote:{},personal:{}}这样的形式
+   */
+  return function reducer(state = {}, action) {
+    let newState = {};
+    for (let key in reducers) {
+      if (reducers.hasOwnProperty(key)) break;
+      //reducers[key]：每个模块单独的reducer
+      //state[key]：当前模块在redux容器中存储的状态信息
+      //返回值是当前模块最新的状态，把它再放到newState中
+      newState[key] = reducers[key](state[key], action);
+    }
+    return newState;
+  };
+}
+
+/**
+ *
+ * @param {*} state 原有状态信息
+ * @param {*} action 派发任务时候传递的行为对象
+ */
+let reducer = (state = {}, action) => {
+  //根据type执行不同的state修改操作
+  switch (action.type) {
+    case A:
+    case B:
+    default:
+      return state; //返回的state会替换原有的state
+  }
+};
+
+let store = createStore(reducer);
+//create的时候把reducer传递进来，但是此时reducer并没有执行
+//只有dispatch的时候才执行，通过执行reducer修改容器中的状态
+//store.dispatch({type:'xxx',...})
+
+//移除绑定的方法
+let unsubscribe = store.subscribe(fn);
+unsubscribe();
 
 function compose(...funcs) {
   if (funcs.length === 0) {
