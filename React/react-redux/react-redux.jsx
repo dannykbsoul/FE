@@ -8,11 +8,12 @@ import PropTypes, { func } from "prop-types";
  * 2.在组件的render中，把传递给provider的子元素渲染，通过this.props.children可以获取到子元素
  */
 class Provider extends React.Component {
-  //设置上下文信息类型
+  //需要声明静态属性childContextTypes来指定context对象的属性，是context的固定写法
   static childContextTypes = {
     store: PropTypes.object,
   };
-  //设置上下文信息值
+
+  //实现getChildContext方法，返回context对象，也是固定写法
   getChildContext() {
     return {
       store: this.props.store,
@@ -21,12 +22,15 @@ class Provider extends React.Component {
   constructor(props, context) {
     super(props, context);
   }
+
+  //渲染被Provider包裹的组件
   render() {
     return this.props.children;
   }
 }
 
 //export default connect(mapStateToProps, mapDispatchToProps)(TodoList);
+//为什么不直接将TodoList当作第三个参数传入前面的，主要考虑到connect的装饰器写法
 /**
  * @connect 高阶组件(基于高阶函数:柯里化函数)创建的组件就是高阶组件
  * @param {*} mapStateToProps:回调函数，把redux中的部分状态信息挂载到指定组件的属性上
@@ -48,7 +52,7 @@ function connect(mapStateToProps, mapDispatchToProps) {
     //紧接着获取store中的state和dispatch，把mapStateToProps、mapDispatchToProps回调函数执行，
     //接收返回的结果，再把这些结果挂载到component这个要操作组件的属性上
     return class Proxy extends React.Component {
-      //获取上下文中的store
+      //接收context的固定写法
       static contextTypes = {
         store: PropTypes.object,
       };
