@@ -1,5 +1,5 @@
-import React from "react";
-import PropTypes, { func } from "prop-types";
+import React from 'react';
+import PropTypes, { func } from 'prop-types';
 
 /**
  * provider：当前项目的"根"组件
@@ -81,12 +81,15 @@ function connect(mapStateToProps, mapDispatchToProps) {
         let { store } = this.context,
           state = store.getState();
         let propsState =
-          typeof mapStateToProps === "function" ? mapStateToProps(state) : {};
+          typeof mapStateToProps === 'function' ? mapStateToProps(state) : {};
         let propsDispatch =
-          typeof mapDispatchToProps === "function"
+          typeof mapDispatchToProps === 'function'
             ? mapDispatchToProps(store.dispatch)
             : {};
-        return { ...propsState, ...propsDispatch };
+        return {
+          ...propsState,
+          ...propsDispatch,
+        };
       };
     };
   };
@@ -110,7 +113,7 @@ const TodoList = (props) => {
     <div>
       <div>
         <input value={inputValue} onChange={handleInputChange} />
-        <button onClick={handleClick}>提交</button>
+        <button onClick={handleClick}>提交</button>
       </div>
       <ul>
         {list.map((item, index) => {
@@ -176,20 +179,20 @@ const mapDispatchToProps = (dispatch) => {
   return {
     handleInputChange(e) {
       const action = {
-        type: "change_input",
+        type: 'change_input',
         value: e.target.value,
       };
       dispatch(action);
     },
     handleClick() {
       const action = {
-        type: "add_item",
+        type: 'add_item',
       };
       dispatch(action);
     },
     handleDeleteClick(index) {
       const action = {
-        type: "delete_item",
+        type: 'delete_item',
         index,
       };
       dispatch(action);
