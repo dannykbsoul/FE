@@ -63,7 +63,7 @@ function createStore(reducer) {
     state = reducer(state, action);
     for (let i = 0, len = listenArr.length; i < len; i++) {
       let listen = listenArr[i];
-      if (typeof listen === 'function') listen();
+      if (typeof listen === "function") listen();
       else {
         listenArr.splice(i, 1);
         i--;
@@ -72,7 +72,7 @@ function createStore(reducer) {
   }
 
   dispatch({
-    type: '_INIT_DEFAULT_STATE',
+    type: "_INIT_DEFAULT_STATE",
   });
 
   function getState() {

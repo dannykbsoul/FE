@@ -50,7 +50,7 @@ import isPlainObject from './utils/isPlainObject'
 >
 > 1. reducer：纯函数，接收一个state和action，返回一个全新的state
 > 2. preloadedState：初始状态
-> 3. enhancer：你可以选择指定它来增强store的第三方功能 * 比如 middleware、time travel、persistence, Redux附带的唯一商店增强器是 `applyMiddleware()
+> 3. enhancer：你可以选择指定它来增强store的第三方功能，Redux附带的唯一store增强器是`applyMiddleware()`
 >
 > 返回：
 >
@@ -91,6 +91,41 @@ import isPlainObject from './utils/isPlainObject'
 ~~~TS
 export default function createStore(reducer, preloadedState, enhancer) {
 	
+  //前面这一系列判断是对用户的传参进行兼容处理
+  //如果此时传入的参数除了redecer有超过1个函数，那么说明此时传入的中间件没有合并处理
+  if (
+    (typeof preloadedState === 'function' && typeof enhancer === 'function') ||
+    (typeof enhancer === 'function' && typeof arguments[3] === 'function')
+  ) {
+    throw new Error(
+      'It looks like you are passing several store enhancers to ' +
+        'createStore(). This is not supported. Instead, compose them ' +
+        'together to a single function.'
+    )
+  }
+  
+  //合并到下一个判断处理
+  if (typeof preloadedState === 'function' && typeof enhancer === 'undefined') {
+    enhancer = preloadedState
+    preloadedState = undefined
+  }
+
+  //如果此时enhancer是函数，说明是中间件，那么此时需要提前对dispatch加强处理，传入createStore
+  if (typeof enhancer !== 'undefined') {
+    if (typeof enhancer !== 'function') {
+      throw new Error('Expected the enhancer to be a function.')
+    }
+
+    return enhancer(createStore)(
+      reducer,
+      preloadedState
+    ) 
+  }
+
+  if (typeof reducer !== 'function') {
+    throw new Error('Expected the reducer to be a function.')
+  }
+  
   let currentReducer = reducer
   let currentState = preloadedState as S
   let currentListeners: (() => void)[] | null = []
@@ -273,7 +308,7 @@ function dispatch(action: A) {
 ~~~jsx
 // 两个reducer
 const aReducer = (state = initaState, action) => {}
-const bReducer = (state = initbuanState, action) => {}
+const bReducer = (state = initbState, action) => {}
 
 const Reducer = combineReducers({
   aReducer,
@@ -387,37 +422,51 @@ export default function combineReducers(reducers: ReducersMapObject) {
 
 # 5.applyMiddleware.ts
 
+> redux-thunk中间件的实现
+
+~~~JSX
+function createThunkMiddleware(extraArgument) {
+  return ({ dispatch, getState }) => (next) => (action) => {
+    if (typeof action === 'function') {
+      return action(dispatch, getState, extraArgument);
+    }
+
+    return next(action);
+  };
+}
+
+const thunk = createThunkMiddleware();
+thunk.withExtraArgument = createThunkMiddleware;
+
+export default thunk;
+~~~
+
+> `const store = createStore(reducers, applyMiddleware());`
+>
+> `return enhancer(createStore)(reducer,preloadedState) `
+>
+> 其中enhancer是applyMiddleware()返回的结果
+
 ~~~TS
 import compose from './compose'
 
-/**
- * Creates a store enhancer that applies middleware to the dispatch method
- * of the Redux store. This is handy for a variety of tasks, such as expressing
- * asynchronous actions in a concise manner, or logging every action payload.
- *
- * See `redux-thunk` package as an example of the Redux middleware.
- *
- * Because middleware is potentially asynchronous, this should be the first
- * store enhancer in the composition chain.
- *
- * Note that each middleware will be given the `dispatch` and `getState` functions
- * as named arguments.
- *
- * @param middlewares The middleware chain to be applied.
- * @returns A store enhancer applying the middleware.
- *
- * @template Ext Dispatch signature added by a middleware.
- * @template S The type of the state supported by a middleware.
- */
 export default function applyMiddleware(...middlewares) {
   return (createStore) => (reducer, ...args) => {
+    
+    //利用传入的createStore和reducer创建一个store
     const store = createStore(reducer, ...args)
-    let dispatch: Dispatch = () => {}
+    let dispatch = () => {
+      throw new Error(
+        'Dispatching while constructing your middleware is not allowed. ' +
+          'Other middleware would not be applied to this dispatch.'
+      )
+    }
 
     const middlewareAPI = {
       getState: store.getState,
-      dispatch: ·(action, ...args) => dispatch(action, ...args),
+      dispatch: (action, ...args) => dispatch(action, ...args),
     }
+    //让每个middleware带着middlewareAPI这个参数执行一遍
     const chain = middlewares.map((middleware) => middleware(middlewareAPI))
     dispatch = compose(...chain)(store.dispatch)
 
@@ -430,6 +479,55 @@ export default function applyMiddleware(...middlewares) {
 
 ~~~
 
+> 可以看出applyMiddleware是个三级柯里化的函数，它将陆续地获得三个参数：
+>
+> + middleware数组
+> + redux原生的createStore
+> + reducer和preloadedState
+>
+> 接着applyMiddleware 利用 createStore 和 reducer 创建了一个 store，然后 store 的 getState 方法和 dispatch 方法又分别被直接和间接地赋值给 middlewareAPI 变量。
+>
+> 函数式编程：
+>
+> 1. 函数是一等公民：在 JS 中，函数可以当作是变量传入，也可以赋值给一个变量，甚至于，函数执行的返回结果也可以是函数。
+> 2. 数据是不可变的(Immutable)：在函数式编程语言中，数据是不可变的，所有的数据一旦产生，就不能改变其中的值，如果要改变，那就只能生成一个新的数据。
+> 3. 函数只接受一个参数：`const middleware = (store) => (next) => (action) => {}`
+
+~~~JSX
+const chain = middlewares.map((middleware) => middleware(middlewareAPI))
+~~~
+
+这句话会得到一个函数数组
+
+~~~JSX
+const chain = [
+  function a(next) {
+    return function(action) {
+      const start = Date.now();
+      next(action);
+      const ms = Date.now() - start;
+      console.log(`dispatch: ${action.type} - ${ms}ms`);
+    }
+  },
+  function b(next) {
+    return function(action) {
+      console.log(store.getState());
+      next(action);
+    }
+  }
+]
+~~~
+
+接着将数组传入compose，相当于
+
+~~~JSX
+a(b(store.dispatch));
+~~~
+
+a中的next参数就是函数b执行完之后返回的函数，b中的next参数才是原来的dispatch，这样就实现了对dispatch的增强
+
+chain 其实是一个 `(next) => (action) => { ... }` 函数的数组。之后我们以 `store.dispatch` 作为参数进行注入，通过 `compose` 对中间件数组内剥出来的高阶函数进行组合形成一个调用链。调用一次，中间件内的所有函数都将被执行。
+
 
 
 ## 5.1 compose
@@ -437,6 +535,8 @@ export default function applyMiddleware(...middlewares) {
 > compose接收函数数组，返回一个函数
 >
 > 当compose执行的时候，按照函数数组从右像左执行，前一个函数执行返回的结果当作下个函数执行的参数
+>
+> `compose(funcA, funcB, funcC)`等价于`compose(funcA(funcB(funcC())))`
 
 ~~~TS
 export default function compose(...funcs) {
