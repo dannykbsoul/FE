@@ -1,5 +1,5 @@
-import React from 'react';
-import PropTypes, { func } from 'prop-types';
+import React from "react";
+import PropTypes, { func } from "prop-types";
 
 /**
  * provider：当前项目的"根"组件
@@ -81,9 +81,9 @@ function connect(mapStateToProps, mapDispatchToProps) {
         let { store } = this.context,
           state = store.getState();
         let propsState =
-          typeof mapStateToProps === 'function' ? mapStateToProps(state) : {};
+          typeof mapStateToProps === "function" ? mapStateToProps(state) : {};
         let propsDispatch =
-          typeof mapDispatchToProps === 'function'
+          typeof mapDispatchToProps === "function"
             ? mapDispatchToProps(store.dispatch)
             : {};
         return {
@@ -179,20 +179,20 @@ const mapDispatchToProps = (dispatch) => {
   return {
     handleInputChange(e) {
       const action = {
-        type: 'change_input',
+        type: "change_input",
         value: e.target.value,
       };
       dispatch(action);
     },
     handleClick() {
       const action = {
-        type: 'add_item',
+        type: "add_item",
       };
       dispatch(action);
     },
     handleDeleteClick(index) {
       const action = {
-        type: 'delete_item',
+        type: "delete_item",
         index,
       };
       dispatch(action);
@@ -202,3 +202,75 @@ const mapDispatchToProps = (dispatch) => {
 
 //TodoList是一个UI组件，但是connect方法将UI组件和数据以及业务逻辑相结合得到了容器组件
 export default connect(mapStateToProps, mapDispatchToProps)(TodoList);
+
+chain = [
+  function a(next) {
+    return function aa(action) {
+      console.log("a进入");
+      const start = Date.now();
+      next(action);
+      const ms = Date.now() - start;
+      console.log(`dispatch: ${action.type} - ${ms}ms`);
+      console.log("a离开");
+    };
+  },
+  function b(next) {
+    return function bb(action) {
+      console.log("b进入");
+      next(action);
+      console.log(store.getState());
+      console.log("b离开");
+    };
+  },
+  function c(next) {
+    return function cc(action) {
+      console.log("c进入");
+      next(action);
+      console.log("c离开");
+    };
+  },
+];
+
+// 经过compose后，compose(...chain)(store.dispatch) 会变成这样
+compose(a, b, c);
+a(b(c(store.dispatch)));
+
+c(store.dispatch) = function cc(action) {
+  console.log("c进入");
+  store.dispatch(action);
+  console.log("c离开");
+};
+
+b(c(store.dispatch)) = function bb(action) {
+  // next(action) 此时next 为 c(store.dispatch)
+  console.log("b进入");
+  (function cc(action) {
+    console.log("c进入");
+    store.dispatch(action);
+    console.log("c离开");
+  })(action);
+  console.log(store.getState());
+  console.log("b离开");
+};
+
+a(b(c(store.dispatch))) = function aa(action) {
+  console.log("a进入");
+  const start = Date.now();
+  (function bb(action) {
+    console.log("b进入");
+    (function cc(action) {
+      console.log("c进入");
+      store.dispatch(action);
+      console.log("c离开");
+    })(action);
+    console.log(store.getState());
+    console.log("b离开");
+  })(action);
+  const ms = Date.now() - start;
+  console.log(`dispatch: ${action.type} - ${ms}ms`);
+  console.log("a离开");
+};
+
+// 当我再用store.dispatch发送一个action的时候，action会作为function aa 的参数，然后执行aa函数
+// 此时，所有的中间件就会执行了，先执行a，然后b，然后c
+store.dispatch(action) = (function aa(action) {})(action);

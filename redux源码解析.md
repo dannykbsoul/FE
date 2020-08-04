@@ -1,3 +1,9 @@
+# 前言
+
+虽然学习了react有一段时间了，也知道redux的流程，会用的程度吧。但是背后的原理诸如createStore、applyMiddleware等API背后到底发生了什么事情，我其实还是不怎么了解的，因此最近花了几天时间阅读了Redux的源码，写下文章纪录一下自己在看源码的一些理解。
+
+
+
 # 1.index.ts
 
 ~~~TS
@@ -422,6 +428,8 @@ export default function combineReducers(reducers: ReducersMapObject) {
 
 # 5.applyMiddleware.ts
 
+增强dispatch action到reducer中间的功能，去完成一些事情
+
 > redux-thunk中间件的实现
 
 ~~~JSX
@@ -500,35 +508,96 @@ const chain = middlewares.map((middleware) => middleware(middlewareAPI))
 这句话会得到一个函数数组
 
 ~~~JSX
-const chain = [
+chain = [
   function a(next) {
-    return function(action) {
+    return function aa(action) {
+      console.log("a进入");
       const start = Date.now();
       next(action);
       const ms = Date.now() - start;
       console.log(`dispatch: ${action.type} - ${ms}ms`);
-    }
+      console.log("a离开");
+    };
   },
   function b(next) {
-    return function(action) {
-      console.log(store.getState());
+    return function bb(action) {
+      console.log("b进入");
       next(action);
-    }
-  }
-]
+      console.log(store.getState());
+      console.log("b离开");
+    };
+  },
+  function c(next) {
+    return function cc(action) {
+      console.log("c进入");
+      next(action);
+      console.log("c离开");
+    };
+  },
+];
 ~~~
 
-接着将数组传入compose，相当于
+接着执行
 
 ~~~JSX
-a(b(store.dispatch));
+dispatch = compose(...chain)(store.dispatch)
 ~~~
 
-a中的next参数就是函数b执行完之后返回的函数，b中的next参数才是原来的dispatch，这样就实现了对dispatch的增强
+相当于
+
+~~~JSX
+a(b(c(store.dispatch)))
+~~~
+
+接着我们来看看这个表达式是什么？
+
+~~~JSX
+c(store.dispatch) = function cc(action) {
+  console.log("c进入");
+  store.dispatch(action);
+  console.log("c离开");
+};
+~~~
+
+~~~JSX
+b(c(store.dispatch)) = function bb(action) {
+  // next(action) 此时next 为 c(store.dispatch)
+  console.log("b进入");
+  (function cc(action) {
+    console.log("c进入");
+    store.dispatch(action);
+    console.log("c离开");
+  })(action);
+  console.log(store.getState());
+  console.log("b离开");
+};
+~~~
+
+~~~JSX
+a(b(c(store.dispatch))) = function aa(action) {
+  console.log("a进入");
+  const start = Date.now();
+  (function bb(action) {
+    console.log("b进入");
+    (function cc(action) {
+      console.log("c进入");
+      store.dispatch(action);
+      console.log("c离开");
+    })(action);
+    console.log(store.getState());
+    console.log("b离开");
+  })(action);
+  const ms = Date.now() - start;
+  console.log(`dispatch: ${action.type} - ${ms}ms`);
+  console.log("a离开");
+};
+~~~
+
+这时候我们得到了最终的dispatch，a中的next参数就是函数b执行完之后返回的函数，b中的next参数就是函数c执行完之后返回的函数，c中的next参数才是原来的dispatch，这样就实现了对dispatch的增强
 
 chain 其实是一个 `(next) => (action) => { ... }` 函数的数组。之后我们以 `store.dispatch` 作为参数进行注入，通过 `compose` 对中间件数组内剥出来的高阶函数进行组合形成一个调用链。调用一次，中间件内的所有函数都将被执行。
 
-
+每个中间件最里层处理 action 参数的函数返回值都会影响 Store 上的 dispatch 函数的返回值，但每个中间件中这个函数返回值可能都不一样。就比如上面这个 react-thunk 中间件，返回的可能是一个 action 函数，也有可能返回的是下一个中间件返回的结果。因此，dispatch 函数调用的返回结果通常是不可控的，我们最好不要依赖于 dispatch 函数的返回值。
 
 ## 5.1 compose
 
