@@ -274,3 +274,18 @@ a(b(c(store.dispatch))) = function aa(action) {
 // 当我再用store.dispatch发送一个action的时候，action会作为function aa 的参数，然后执行aa函数
 // 此时，所有的中间件就会执行了，先执行a，然后b，然后c
 store.dispatch(action) = (function aa(action) {})(action);
+
+function compose(...funcs) {
+  if (funcs.length === 0) {
+    return (arg) => arg;
+  }
+
+  if (funcs.length === 1) {
+    return funcs[0];
+  }
+
+  return funcs.reduce((a, b) => (...args) => a(b(...args)));
+}
+
+var arr = [(a) => a + 1, (b) => b * 10];
+console.log(compose(...arr)(1));

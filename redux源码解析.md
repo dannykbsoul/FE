@@ -301,9 +301,119 @@ function dispatch(action: A) {
 
 # 3.bindActionCreators.ts
 
+`bindActionCreator`将会返回一个函数，这个函数会用自身所接收的参数来调用`actionCreator`并生成对应动作，并且这个生成的动作将会作为`dispatch`函数的参数。也就是说我们将生成动作和调度动作封装在了一起。
 
+~~~TSX
+function bindActionCreator<A extends AnyAction = AnyAction>(
+  actionCreator: ActionCreator<A>,
+  dispatch: Dispatch
+) {
+  return function (this: any, ...args: any[]) {
+    return dispatch(actionCreator.apply(this, args))
+  }
+}
+~~~
 
+两种情况：
 
+1. 如果传入的actionCreators是一个函数的时候，说明是单一的action，直接调用上述的`bindActionCreator`
+2. 如果传入的actionCreators是一个对象的时候，我们会以键值对的形式存储到`boundActionCreators`上
+
+~~~TSX
+export default function bindActionCreators(
+  actionCreators: ActionCreator<any> | ActionCreatorsMapObject,
+  dispatch: Dispatch
+) {
+  if (typeof actionCreators === 'function') {
+    return bindActionCreator(actionCreators, dispatch)
+  }
+
+  if (typeof actionCreators !== 'object' || actionCreators === null) {
+    throw new Error(
+      `bindActionCreators expected an object or a function, instead received ${
+        actionCreators === null ? 'null' : typeof actionCreators
+      }. ` +
+        `Did you write "import ActionCreators from" instead of "import * as ActionCreators from"?`
+    )
+  }
+
+  const boundActionCreators: ActionCreatorsMapObject = {}
+  for (const key in actionCreators) {
+    const actionCreator = actionCreators[key]
+    if (typeof actionCreator === 'function') {
+      boundActionCreators[key] = bindActionCreator(actionCreator, dispatch)
+    }
+  }
+  return boundActionCreators
+}
+~~~
+
+举个🌰
+
+~~~JS
+const MyActionCreators = {
+  increment: function(step) {
+    return {
+      type: 'INCREMENT',
+      step: step || 1
+    }
+  },
+
+  decrement: function(step) {
+    return {
+      type: 'DECREMENT',
+      step: - (step || 1)
+    }
+  }
+}
+
+const dispatch = function(action) {
+  console.log(action)
+}
+
+const boundActionCreators = bindActionCreators(MyActionCreators, dispatch)
+~~~
+
+previous：
+
+~~~JSX
+dispatch(MyActionCreators.increment()) // { type: 'INCREMENT', step: 1 }
+dispatch(MyActionCreators.increment(2)) // { type: 'INCREMENT', step: 2 }
+dispatch(MyActionCreators.decrement()) // { type: 'DECREMENT', step: -1 }
+dispatch(MyActionCreators.decrement(2)) // { type: 'DECREMENT', step: -2 }
+~~~
+
+now：
+
+~~~JSX
+boundActionCreators.increment() // { type: 'INCREMENT', step: 1 }
+boundActionCreators.increment(2) // { type: 'INCREMENT', step: 2 }
+boundActionCreators.decrement() // { type: 'DECREMENT', step: -1 }
+boundActionCreators.decrement(2) // { type: 'DECREMENT', step: -2 }
+~~~
+
+⚠️
+
+**Action的取名尽量不要重复**
+
+因为如果重复的话，当我们进行如下操作的时候，我们会发现同名key的action会覆盖
+
+~~~JS
+const aActions = {
+  fetchID: action,
+}
+
+const bActions = {
+  fetchID: action,
+}
+
+const mapDispatchToProps => dispatch => {
+  return {
+    ...bindActionCreators(aActions, dispatch); //fetchID
+    ...bindActionCreators(bActions, dispatch); //fetchID
+  }
+}
+~~~
 
 # 4.combineReducers.ts
 
@@ -597,9 +707,66 @@ a(b(c(store.dispatch))) = function aa(action) {
 
 chain 其实是一个 `(next) => (action) => { ... }` 函数的数组。之后我们以 `store.dispatch` 作为参数进行注入，通过 `compose` 对中间件数组内剥出来的高阶函数进行组合形成一个调用链。调用一次，中间件内的所有函数都将被执行。
 
-每个中间件最里层处理 action 参数的函数返回值都会影响 Store 上的 dispatch 函数的返回值，但每个中间件中这个函数返回值可能都不一样。就比如上面这个 react-thunk 中间件，返回的可能是一个 action 函数，也有可能返回的是下一个中间件返回的结果。因此，dispatch 函数调用的返回结果通常是不可控的，我们最好不要依赖于 dispatch 函数的返回值。
+## 5.1洋葱模型
 
-## 5.1 compose
+1. 洋葱的上下文
+
+   getState：这样每一层都能获取到当前的状态
+
+   dispatch：可以将操作往下传递
+
+2. 洋葱层之间的顺序关系
+
+   从外向内逐层调用，某些情况下我们要从从第一层从新调用。比如：当你在这层action改变了状态，或者，进行了某种校验，发现不符合业务逻辑需要跳转。最常见的就是异步请求，当你的action是一个异步请求的时候，这时，当结果回来的时候从逻辑的完整性来说，是需要从第一层触发action的。因为，此时回来的数据对所有的middware来说，都是需要处理的消息。所以我们的dispatch需要两个，用于从头开始的dispatch，也就是最终的dispatch，用于跳到下一层洋葱皮的dispatch。一般将跳到下一层的称为next。
+
+我们知道可以通过compose得到最终的dispatch，当然compose的前提是一系列相同声明的函数，相同声明指的是入参&返回值一致。
+
+~~~js
+midware1 = (dipatch, getState) => next => action => {};
+midware2 = (dipatch, getState) => next => action => {};
+midware3 = (dipatch, getState) => next => action => {};
+~~~
+
+那么如何让每个middleware持有最终的dispatch呢？ 闭包！
+
+当你在一个函数声明范围内，持有一个声明外部的变量，那么就形成了一个闭包。而所有闭包内对变量的修改，都将会影响其它人。无论这个变量是对象或者是基本类型。
+
+~~~JS
+let dispatch = ()=>{};
+const chain = [mid1,mid2,mid3].map(mid=>mid({ getState, dispatch(){ return dispatch }}));
+~~~
+
+得到的chain数组是：
+
+~~~JS
+mid1: next=>action=>{};
+mid2: next=>action=>{};
+mid3: next=>action=>{};
+~~~
+
+用compose串联起来：
+
+~~~JS
+compose(mid1, mid2, mid3);
+~~~
+
+那么如何触发这个调用栈呢？传入redux实现的dispatch即可
+
+~~~JS
+finalDispatch = compose([mid1, mid2, mid3])(redux.dispatch)
+~~~
+
+最后调用`finalDispatch(action)`，按照mid1->mid2->mid3->redux.dispatch调用，但是其实compose(f1,f2,f3)对应的是f1(f2(f3()))，也就是说调用顺序是f3->f2->f1，这是在传入的函数是一阶函数的情况下，当传入的是二阶函数的时候，我们首选传入redux.dispatch的时候：
+
+~~~JS
+mid3.next = redux.dispatch
+mid2.next = mid3返回的函数
+mid1.next = mid2返回的函数
+~~~
+
+事实上，我们compose得到的是一个二阶函数，当传入redux.dispatch的时候，实际上这个二阶函数被降级成一阶函数，此时mid1生成的函数处于调用栈的最上层，所以此时传入action的时候，调用会按照mid1->mid2->mid3->redux.dispatch调用。这样每一层mid都先执行自己的部分，而后再交给下一层进行处理，当然也可以选择直接跳回到第一层。
+
+## 5.2 compose
 
 > compose接收函数数组，返回一个函数
 >
