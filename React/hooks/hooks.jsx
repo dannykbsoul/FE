@@ -1,4 +1,4 @@
-const { useEffect } = require("react");
+const { useEffect } = require('react');
 
 /**
  *实现功能：
@@ -12,10 +12,10 @@ function useWindowWidth() {
     const handleResize = () => {
       setWidth(window.innerWidth);
     };
-    window.addEventListener("resize", handleResize);
+    window.addEventListener('resize', handleResize);
 
     return () => {
-      window.removeEventListener("resize", handleResize);
+      window.removeEventListener('resize', handleResize);
     };
   }, [width]);
 
@@ -34,18 +34,18 @@ function App() {
   useEffect(() => {
     //第一次渲染结束执行 componentDidMount
     const handleScroll = () => {};
-    window.addEventListener("scroll", handleScroll);
+    window.addEventListener('scroll', handleScroll);
     return () => {
       //组件卸载之前执行 componentWillUnmount
-      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener('scroll', handleScroll);
     };
   }, []);
 
   useEffect(() => {
-    console.log("每次渲染结束都会执行");
+    console.log('每次渲染结束都会执行');
   });
 
   useEffect(() => {
-    console.log("只有在count变化后才会执行");
+    console.log('只有在count变化后才会执行');
   }, [count]);
 }
