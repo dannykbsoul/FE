@@ -1,78 +1,103 @@
-/**
- *
- * @param {*} initialValue
- * 版本1
- * 我们发现点击按钮不会有任何响应，主要是我们实现的useState不具备存储
- * 每次重新执行app的时候，会重新执行useState，这时候里面的state还会是传入的初始值
- * 所以我们需要借助外部的一个变量才存储
- */
-function useState(initialValue) {
-  let state = initialValue;
-  function dispatch(newState) {
-    state = newState;
-    render(<App />, document.getElementById("root"));
-  }
-  return [state, dispatch];
-}
+let workInProgressHook;
+let isMount = true;
 
-/**
- * 此时解决了单个hooks的问题，但是有多个useState，所以我们需要一个数组去存储state
- */
-let _state;
-function useState(initialValue) {
-  _state = _state | initialValue;
-  function setState(newState) {
-    _state = newState;
-    render(<App />, document.getElementById("root"));
-  }
-  return [_state, setState];
-}
-
-/**
- * 页面初次渲染，每次useState执行时都会将对应的setState绑定到对应的索引的位置，
- * 然后将初始state存入memoizedState中
- * 点击按钮时，会触发setCount 和 setAge，每个setState都有其对应索引的引用，因此
- * 触发对应的setState会改变对应位置的state的值。
- * 重新渲染依旧是依次执行useState，但是memoizedState中已经有了上一次的state值，
- * 因此初始化的值并不是传入的初始值而是上一次的值，这样就解释了为什么Hooks要确保在每一次
- * 渲染中都按照同样的顺序被调用，因为 memoizedState 是按 Hooks 定义的顺序来放置数据的，
- * 如果 Hooks 的顺序变化，memoizedState 并不会感知到。因此最好每次只在最顶层使用 Hook，
- * 不要在循环、条件、嵌套函数中调用 Hooks。
- */
-let memoizedState = []; // hooks 的值存放在这个数组里
-let cursor = 0; // 当前 memoizedState 的索引
-
-function useState(initialValue) {
-  memoizedState[cursor] = memoizedState[cursor] || initialValue;
-  const currentCursor = cursor;
-  function setState(newState) {
-    memoizedState[currentCursor] = newState;
-    cursor = 0;
-    render(<App />, document.getElementById("root"));
-  }
-  return [memoizedState[cursor++], setState]; // 返回当前 state，并把 cursor 加 1
-}
-
-const App = () => {
-  const [count, setCount] = useState(0);
-  const [name, setName] = useState("zj");
-  const [age, setAge] = useState(18);
-
-  return (
-    <>
-      <p>You clicked {count} times</p>
-      <p>Your age is {age}</p>
-      <p>Your name is {name}</p>
-      <button
-        onClick={() => {
-          setCount(count + 1);
-          setAge(age + 1);
-        }}
-      >
-        Click me
-      </button>
-    </>
-  );
+// App组件对应的fiber对象
+const fiber = {
+  // 保存该FunctionComponent对应的Hooks链表
+  memoizedState: null,
+  // 指向App函数
+  stateNode: App,
 };
 
-export default App;
+function schedule() {
+  workInProgressHook = fiber.memoizedState;
+  const app = fiber.stateNode();
+  isMount = false;
+  return app;
+}
+
+//当有一个update产生的时候，会触发dispatch，将当前update加入到环状链表中
+function dispatchAction(queue, action) {
+  //每一个update都是一个对象
+  const update = {
+    action, //更新执行
+    next: null, //和同一个hook的其他update形成环状单向链表
+  };
+  //当前queue中目前没有update对象
+  if (queue.pending === null) {
+    update.next = update;
+  } else {
+    //加入到链表尾部
+    update.next = queue.pending.next;
+    queue.pending.next = update;
+  }
+  queue.pending = update;
+
+  // 模拟React开始调度更新
+  schedule();
+}
+
+function useState(initialState) {
+  let hook;
+
+  //isMount为true代表是首次render，mount时需要生成hook对象
+  if (isMount) {
+    hook = {
+      queue: {
+        pending: null,
+      },
+      memoizedState: initialState,
+      next: null,
+    };
+    // 将hook插入fiber.memoizedState链表末尾
+    if (!fiber.memoizedState) {
+      fiber.memoizedState = hook;
+    } else {
+      workInProgressHook.next = hook;
+    }
+    // 移动workInProgressHook指针
+    workInProgressHook = hook;
+  } else {
+    // update时找到对应hook
+    hook = workInProgressHook;
+    // 移动workInProgressHook指针
+    workInProgressHook = workInProgressHook.next;
+  }
+
+  //当找到该useState对应的hook后，如果该hook.queue.pending不为空（即存在update），则更新其state
+  // update执行前的初始state
+  let baseState = hook.memoizedState;
+  if (hook.queue.pending) {
+    // 获取update环状单向链表中第一个update
+    let firstUpdate = hook.queue.pending.next;
+
+    do {
+      // 执行update action
+      const action = firstUpdate.action;
+      baseState = action(baseState);
+      firstUpdate = firstUpdate.next;
+      // 最后一个update执行完后跳出循环
+    } while (firstUpdate !== hook.queue.pending);
+
+    // 清空queue.pending
+    hook.queue.pending = null;
+  }
+  // 将update action执行完后的state作为memoizedState
+  hook.memoizedState = baseState;
+
+  return [baseState, dispatchAction.bind(null, hook.queue)];
+}
+
+function App() {
+  const [num, updateNum] = useState(0);
+
+  console.log(`${isMount ? "mount" : "update"} num: `, num);
+
+  return {
+    click() {
+      updateNum((num) => num + 1);
+    },
+  };
+}
+
+window.app = schedule();
