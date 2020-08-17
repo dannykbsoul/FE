@@ -22,23 +22,3 @@
 let n = 10;
 let m = n.plus(10).minus(5);
 console.log(m); //=>15（10+10-5）
-
-//编写一个ADD函数满足如下需求
-
-function add(...outerArgs) {
-  add = function (...innerArgs) {
-    outerArgs.push(...innerArgs);
-    return add;
-  };
-  add.toString = function () {
-    return outerArgs.reduce((x, y) => x + y);
-  };
-  return add;
-}
-
-add(1); //1
-add(1)(2); //3
-add(1)(2)(3); //6
-add(1)(2, 3); //6
-add(1, 2)(3); //6
-add(1, 2, 3); //6

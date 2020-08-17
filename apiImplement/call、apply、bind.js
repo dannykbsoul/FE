@@ -44,11 +44,11 @@ Function.prototype.MyBind = function (context, ...args) {
   let fBound = function (...amArg) {
     return self.call(this instanceof fBound ? this : context, args.concat(amArg));
   }
-  // fBound.prototype = Object.create(this.prototype);
-  let fNOP = function () {};
-  if (this.prototype) {
-    fNOP.prototype = this.prototype;
-  }
-  fBound.prototype = new fNOP();
+  fBound.prototype = Object.create(this.prototype);
+  // let fNOP = function () {};
+  // if (this.prototype) {
+  //   fNOP.prototype = this.prototype;
+  // }
+  // fBound.prototype = new fNOP();
   return fBound;
 }

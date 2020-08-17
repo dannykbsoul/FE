@@ -178,3 +178,14 @@ setTimeout(_ => {
 }, 0);
 console.log(10);
 //1 5 3 10 4 7 8 9 2
+
+let obj = {
+  2: 3,
+  3: 4,
+  length: 2,
+  push: Array.prototype.push
+}
+
+obj.push(1);
+obj.push(2);
+console.log(obj);
