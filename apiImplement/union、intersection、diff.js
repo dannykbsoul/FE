@@ -3,7 +3,7 @@ let b = new Set([3, 4, 5, 6]);
 
 //并集
 let union = new Set([...a, ...b]);
-console.log(union)
+console.log([...union])
 //交集
 let intersection = [...a].filter(x => b.has(x));
 console.log(intersection);

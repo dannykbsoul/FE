@@ -17,8 +17,8 @@ a.x = a = {
   n: 2
 };
 
-console.log(a.x)
-console.log(b.x) //undefined {n:2}
+console.log(a.x) // undefined
+console.log(b.x) // {n:2}
 
 
 // example 1
@@ -94,11 +94,12 @@ Foo.a();
 // # 输出 1
 
 
-String('11') == new String('11');
-String('11') === new String('11'); //true false
+String('11') == new String('11'); // true
+String('11') === new String('11'); // false
 
 var name = 'Tom';
 (function () {
+  console.log(name); // undefined
   if (typeof name == 'undefined') {
     var name = 'Jack';
     console.log('Goodbye ' + name);
@@ -109,6 +110,7 @@ var name = 'Tom';
 
 var name = 'Tom';
 (function () {
+  console.log(name); // 'Tom'
   if (typeof name == 'undefined') {
     name = 'Jack';
     console.log('Goodbye ' + name);
@@ -145,21 +147,3 @@ async function main() {
 main();
 //new Promise(xx)相当于同步任务, 会立即执行
 //所以: x,y,z 三个任务是几乎同时开始的, 最后的时间依然是10*1000ms (比这稍微大一点点, 超出部分在1x1000ms之内)
-
-function wait() {
-  return new Promise(resolve =>
-    setTimeout(resolve, 10 * 1000)
-  )
-}
-
-async function main() {
-  console.time();
-  const x = wait();
-  const y = wait();
-  const z = wait();
-  await x;
-  await y;
-  await z;
-  console.timeEnd();
-}
-main();

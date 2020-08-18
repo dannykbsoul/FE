@@ -1,18 +1,18 @@
 //实现map
 Array.prototype.MyMap = function (fn, context) {
-  var arr = Array.prototype.slice.call(this);
-  var mapArr = [];
-  for (var i = 0, len = arr.length; i < len; i++) {
+  const arr = this,
+    mapArr = [];
+  for (let i = 0, len = arr.length; i < len; i++) {
     mapArr.push(fn.call(context, arr[i], i, this));
   }
   return mapArr;
 }
 //实现reduce
 Array.prototype.MyReduce = function (fn, initVal) {
-  var arr = Array.prototype.slice.call(this);
-  var res = initVal ? initVal : arr[0];
-  var startIndex = initVal ? 0 : 1;
-  for (var i = startIndex, len = arr.length; i < len; i++) {
+  let arr = this,
+    res = initVal ? initVal : arr[0],
+    startIndex = initVal ? 0 : 1;
+  for (let i = startIndex, len = arr.length; i < len; i++) {
     res = fn.call(null, res, arr[i], i, this);
   }
   return res;
