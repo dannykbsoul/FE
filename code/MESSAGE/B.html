@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<meta charset="UTF-8">
+	<meta http-equiv="X-UA-Compatible" content="ie=edge">
+	<meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0">
+	<title>珠峰培训 - 微信：18310612838</title>
+	<!-- IMPORT CSS -->
+</head>
+
+<body>
+	<!-- IMPORT JS -->
+	<script>
+		//=>监听客户端A发送过来的请求信息，把数据返回给客户端
+		window.onmessage = function (ev) {
+			// console.log(ev.data);
+			//=>ev.data:客户端A发送的信息
+			//=>ev.source:客户端A
+			ev.source.postMessage(JSON.stringify({
+				code: 0,
+				codeText: 'OK',
+				data: ev.data + '@@@'
+			}), '*');
+		};
+	</script>
+</body>
+
+</html>

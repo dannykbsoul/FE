@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<meta charset="UTF-8">
+	<meta http-equiv="X-UA-Compatible" content="ie=edge">
+	<meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0">
+	<title>珠峰培训 - 微信：18310612838</title>
+	<!-- IMPORT CSS -->
+</head>
+
+<body>
+	<!-- IMPORT JS -->
+	<script>
+		let count = 0;
+		let iframe = document.createElement('iframe');
+		iframe.style.display = 'none';
+		iframe.src = 'http://127.0.0.1:1002/NAME/B.html';
+		iframe.onload = function () {
+			// 想要正常拿到B中的内容，还需要把IFRAME的指向重新指回和A相同的源下
+			// proxy临时过渡页面，不需要做任何的处理
+			if (count === 0) {
+				iframe.src = '/NAME/proxy.html';
+				count++;
+				return;
+			}
+			console.log(iframe.contentWindow.name);
+		};
+		document.body.appendChild(iframe);
+	</script>
+</body>
+
+</html>
+
+<!-- 
+	A页面（WEB）：http://127.0.0.1:1001/NAME/A.html
+	B页面（API）：http://127.0.0.1:1002/NAME/B.html
+ -->
