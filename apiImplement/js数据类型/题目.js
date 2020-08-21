@@ -1,20 +1,47 @@
+//if (a == 1 & a == 2 & a == 3)
+
+//方法一
+var a = {
+    a: 1,
+    toString() {
+        return this.a++
+    }
+}
+
+if (a == 1 && a == 2 && a == 3) {
+    console.log('OK');
+}
+
+//方法二
+var a = [1, 2, 3];
+a.toString = a.shift;
+
+//方法三 Object.defineProperty
+var i = 1;
+Object.defineProperty(window, 'a', {
+    get() {
+        return i++;
+    }
+})
+
+
 var obj = {
-  '2': 3,
-  '3': 4,
-  'length': 2,
-  'splice': Array.prototype.splice,
-  'push': Array.prototype.push
+    '2': 3,
+    '3': 4,
+    'length': 2,
+    'splice': Array.prototype.splice,
+    'push': Array.prototype.push
 }
 obj.push(1)
 obj.push(2)
 console.log(obj) //Object(4) [empty × 2, 1, 2, splice: ƒ, push: ƒ]
 
 var a = {
-  n: 1
+    n: 1
 };
 var b = a;
 a.x = a = {
-  n: 2
+    n: 2
 };
 
 console.log(a.x) // undefined
@@ -23,36 +50,36 @@ console.log(b.x) // {n:2}
 
 // example 1
 var a = {},
-  b = '123',
-  c = 123;
+    b = '123',
+    c = 123;
 a[b] = 'b';
 a[c] = 'c';
 console.log(a[b]); //c
 
 // example 2
 var a = {},
-  b = Symbol('123'),
-  c = Symbol('123');
+    b = Symbol('123'),
+    c = Symbol('123');
 a[b] = 'b';
 a[c] = 'c';
 console.log(a[b]); //b
 
 // example 3
 var a = {},
-  b = {
-    key: '123'
-  },
-  c = {
-    key: '456'
-  };
+    b = {
+        key: '123'
+    },
+    c = {
+        key: '456'
+    };
 a[b] = 'b';
 a[c] = 'c';
 console.log(a[b]); //c
 
 function changeObjProperty(o) {
-  o.siteUrl = "http://www.baidu.com"
-  o = new Object()
-  o.siteUrl = "http://www.google.com"
+    o.siteUrl = "http://www.baidu.com"
+    o = new Object()
+    o.siteUrl = "http://www.google.com"
 }
 let webSite = new Object();
 changeObjProperty(webSite);
@@ -60,20 +87,20 @@ console.log(webSite.siteUrl); //http://www.baidu.com
 
 
 function Foo() {
-  Foo.a = function () {
-    console.log(1)
-  }
-  this.a = function () {
-    console.log(2)
-  }
+    Foo.a = function () {
+        console.log(1)
+    }
+    this.a = function () {
+        console.log(2)
+    }
 }
 // 以上只是 Foo 的构建方法，没有产生实例，此刻也没有执行
 Foo.prototype.a = function () {
-  console.log(3)
+    console.log(3)
 }
 // 现在在 Foo 上挂载了原型方法 a ，方法输出值为 3
 Foo.a = function () {
-  console.log(4)
+    console.log(4)
 }
 // 现在在 Foo 上挂载了直接方法 a ，输出值为 4
 Foo.a();
@@ -99,24 +126,24 @@ String('11') === new String('11'); // false
 
 var name = 'Tom';
 (function () {
-  console.log(name); // undefined
-  if (typeof name == 'undefined') {
-    var name = 'Jack';
-    console.log('Goodbye ' + name);
-  } else {
-    console.log('Hello ' + name);
-  }
+    console.log(name); // undefined
+    if (typeof name == 'undefined') {
+        var name = 'Jack';
+        console.log('Goodbye ' + name);
+    } else {
+        console.log('Hello ' + name);
+    }
 })(); //Goodbye Jack
 
 var name = 'Tom';
 (function () {
-  console.log(name); // 'Tom'
-  if (typeof name == 'undefined') {
-    name = 'Jack';
-    console.log('Goodbye ' + name);
-  } else {
-    console.log('Hello ' + name);
-  }
+    console.log(name); // 'Tom'
+    if (typeof name == 'undefined') {
+        name = 'Jack';
+        console.log('Goodbye ' + name);
+    } else {
+        console.log('Hello ' + name);
+    }
 })(); //Hello Tom
 
 1 + "1" // "11"
@@ -126,24 +153,3 @@ var name = 'Tom';
 [1, 2] + [2, 1] //"1,22,1"
 
 "a" + +"b" //"aNaN"
-
-
-function wait() {
-  return new Promise(resolve =>
-    setTimeout(resolve, 10 * 1000)
-  )
-}
-
-async function main() {
-  console.time();
-  const x = wait();
-  const y = wait();
-  const z = wait();
-  await x;
-  await y;
-  await z;
-  console.timeEnd();
-}
-main();
-//new Promise(xx)相当于同步任务, 会立即执行
-//所以: x,y,z 三个任务是几乎同时开始的, 最后的时间依然是10*1000ms (比这稍微大一点点, 超出部分在1x1000ms之内)

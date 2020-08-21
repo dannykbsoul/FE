@@ -224,3 +224,55 @@ let arr = [
     })
 ]
 Promise.all(arr)
+
+function wait() {
+    return new Promise(resolve =>
+        setTimeout(resolve, 10 * 1000)
+    )
+}
+
+async function main() {
+    console.time();
+    const x = wait();
+    const y = wait();
+    const z = wait();
+    await x;
+    await y;
+    await z;
+    console.timeEnd();
+}
+main();
+//new Promise(xx)相当于同步任务, 会立即执行
+//所以: x,y,z 三个任务是几乎同时开始的, 最后的时间依然是10*1000ms (比这稍微大一点点, 超出部分在1x1000ms之内)
+
+
+console.log(1);
+setTimeout(_ => {
+    console.log(2);
+}, 1000);
+async function fn() {
+    console.log(3);
+    setTimeout(_ => {
+        console.log(4);
+    }, 20);
+    return Promise.reject();
+}
+async function run() {
+    console.log(5);
+    await fn();
+    console.log(6);
+}
+run();
+// 需要执行150MS左右
+for (let i = 0; i < 90000000; i++) {}
+setTimeout(_ => {
+    console.log(7);
+    new Promise(resolve => {
+        console.log(8);
+        resolve();
+    }).then(_ => {
+        console.log(9);
+    });
+}, 0);
+console.log(10);
+//1 5 3 10 4 7 8 9 2
