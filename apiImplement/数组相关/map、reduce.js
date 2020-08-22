@@ -18,7 +18,7 @@ Array.prototype.MyReduce = function (fn, initVal) {
   return res;
 }
 //reduce实现map
-Function.prototype.MyMap1 = function (fn) {
+Array.prototype.MyMap1 = function (fn) {
   const arr = this;
   return arr.reduce((pre, cur, index, arr) => {
     pre.push(fn(cur, index, arr));

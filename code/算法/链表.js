@@ -29,5 +29,3 @@ function printLinkedList(head) {
 }
 // let head = createLinkedList(arr);
 // printLinkedList(head);
-
-console.log(1 & 6);
