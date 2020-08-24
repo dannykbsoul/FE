@@ -1,7 +1,9 @@
-// setTimeout(function () {
-//   //...需要执行的操作
-//   setTimeout(arguments.callee, 500)
-// }, 500)
+setTimeout(function () {
+  //...需要执行的操作
+  setTimeout(arguments.callee, 500)
+}, 500)
+
+// 
 
 //如何改变让下面这个每隔1s输出
 // for (var i = 0; i < 3; i++) {
