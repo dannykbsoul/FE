@@ -541,6 +541,40 @@ var step = function () {
 }
 //step();
 
+// 实现两任务并行
+class Scheduler {
+    temp=0;
+    res=[];
+    len=0;
+    add(promiseCreator) {
+      let that=this;
+      return new Promise(resolve=>{
+        that.temp++;
+        if(that.temp<=2) {
+          resolve(promiseCreator().then(function f(){
+            if(that.res.length) {
+              let {myresolve,fulfilled}=that.res.shift();
+              myresolve(fulfilled().then(f));
+            }else that.temp=0;
+          }))
+        }else{
+          that.res.push({fulfilled:promiseCreator,myresolve:resolve});
+        }
+      })
+    }
+  }
+  const timeout = ( time) => new Promise( resolve => {
+  setTimeout( resolve, time)
+  })
+  const scheduler = new Scheduler()
+  const addTask = ( time, order) => {
+  scheduler. add(() => timeout( time))
+  . then(() => console. log( order))
+  }
+  addTask( 1000, '1')
+  addTask( 500, '2')
+  addTask( 300, '3')
+  addTask( 100, '4')
 
 //promisify
 //我们需要将 callback 语法的 API 改造成 Promise 语法，为此我们需要一个 promisify 的方法。

@@ -19,6 +19,61 @@ ball.addEventListener('mouseup', () => {
     startDrag = false;
 });
 
+let box = document.querySelector('.box'),
+    HTML = document.documentElement,
+    minL = 0,
+    minT = 0,
+    maxL = HTML.clientWidth - box.offsetWidth,
+    maxT = HTML.clientHeight - box.offsetHeight;
+
+// 鼠标按下开始拖拽
+const down = function down(ev) {
+    // 记录鼠标开始位置和盒子的开始位置：这些信息蔚来会在鼠标移动的
+    // 方法中使用(把盒子挂载到盒子的自定义属性上，后期在其他的方法中只要获取到当前盒子，就可以获取到记录的这些开始信息了)
+    // this -> box
+    let {
+        top,
+        left
+    } = this.getBoundingClientRect();
+    this.startT = top;
+    this.startL = left;
+    this.startX = ev.clientX;
+    this.startY = ev.clientY;
+
+    //this.setCapture();
+    // 鼠标按下才能进行鼠标移动和抬起的事件绑定
+    // 注意⚠️ 保证move/up中的this还需要是盒子，并且还要考虑移除的时候如何移除
+    this._move = move.bind(this);
+    this._up = up.bind(this);
+    window.addEventListener('mousemove', this._move);
+    window.addEventListener('mouseup', this._up);
+}
+   
+// 鼠标移动拖拽中
+const move = function move(ev) {
+    // 获取盒子当前的位置
+    let curL = ev.clientX-this.startX+this.startL,
+        curT = ev.clientY-this.startY+this.startT;
+    
+    // 边界判断
+    curL = curL < minL ? minL : (curL>maxL?maxL:curL);
+    curT = curT < minT ? minT : (curT>maxT?maxT:curT);
+
+    // 修改样式
+    this.style.left = `${curL}px`;
+    this.style.right = `${curT}px`;
+}
+
+// 鼠标抬起
+const up = function up(ev) {
+    // this.releaseCapture();
+    // 移除事件绑定来结束拖拽
+    window.removeEventListener('mousemove', this._move);
+    window.removeEventListener('mouseup', this._up);
+}
+
+box.addEventListener('mousedown', down);
+
 // 懒加载
 const imgs = document.getElementsByTagName('img')
 // 获取可视区域的高度
